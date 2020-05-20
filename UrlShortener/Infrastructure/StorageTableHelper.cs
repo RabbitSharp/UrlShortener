@@ -1,19 +1,23 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Table;
+using UrlShortener.Domain.Models;
 
 namespace UrlShortener.Infrastructure
 {
     public class StorageTableHelper
     {
         private readonly Config _config;
+        private readonly ILogger _logger;
 
         public StorageTableHelper()
         {
-            var locator = IServiceLocator.GetInstance;
+            var locator = IServiceLocator.Instance;
             _config = locator.GetService<Config>();
+            _logger = locator.GetService<ILogger>();
         }
 
         public CloudStorageAccount CreateStorageAccountFromConnectionString()
@@ -24,7 +28,7 @@ namespace UrlShortener.Infrastructure
             }
             catch (Exception e)
             {
-                Console.WriteLine($"Invalid storage account information provided. {e}");
+                _logger.LogError(e, "Invalid storage account information provided.");
                 throw;
             }
         }
@@ -63,7 +67,7 @@ namespace UrlShortener.Infrastructure
                 var entity = result.Result as T;
                 if (entity != null)
                 {
-                    Console.WriteLine("\tPartitionKey: {0}\tRowKey: {1}\tEntity: {2}", entity.PartitionKey, entity.RowKey, entity);
+                    _logger.LogInformation("\tPartitionKey: {0}\tRowKey: {1}\tEntity: {2}", entity.PartitionKey, entity.RowKey, entity);
                 }
 
                 return entity;
@@ -73,6 +77,12 @@ namespace UrlShortener.Infrastructure
                 Console.WriteLine(e.Message);
                 throw;
             }
+        }
+
+        public Task<T> GetEntityAsync<T>(CloudTable table, T row)
+            where T : class, ITableEntity
+        {
+            return GetEntityAsync<T>(table, row.PartitionKey, row.RowKey);
         }
 
         public async Task<T> InsertOrUpdateAsync<T>(CloudTable table, T addEntity)
@@ -102,5 +112,30 @@ namespace UrlShortener.Infrastructure
                 throw;
             }
         }
+
+        public async Task<int> GetNextTableId(CloudTable table)
+        {
+            // Get current Id
+            var selectOperation = TableOperation.Retrieve<IdEntity>("1", "KEY");
+            var result = await table.ExecuteAsync(selectOperation);
+
+            if (!(result.Result is IdEntity entity))
+            {
+                entity = new IdEntity
+                {
+                    PartitionKey = "1",
+                    RowKey = "KEY",
+                    Id = 1024
+                };
+            }
+            entity.Id++;
+
+            // Update
+            var updateOperation = TableOperation.InsertOrMerge(entity);
+            await table.ExecuteAsync(updateOperation);
+
+            return entity.Id;
+        }
+
     }
 }

@@ -9,7 +9,7 @@ namespace UrlShortener.Infrastructure
 
         public Config()
         {
-            var locator = IServiceLocator.GetInstance;
+            var locator = IServiceLocator.Instance;
             _executionContext = locator.GetService<ExecutionContext>();
             BuildConfig();
         }
@@ -24,7 +24,7 @@ namespace UrlShortener.Infrastructure
                 .AddEnvironmentVariables()
                 .Build();
 
-            StorageConnectionString = config["DataStorage"];
+            StorageConnectionString = config["STORAGE_CONNECTION_STRING"];
         }
     }
 }

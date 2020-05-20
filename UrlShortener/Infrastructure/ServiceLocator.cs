@@ -3,15 +3,19 @@ using System.Collections.Generic;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Extensions.Logging;
+using UrlShortener.Domain.Repositories;
 
 namespace UrlShortener.Infrastructure
 {
+    /*
+     * Anti-Pattern
+     */
     public interface IServiceLocator
     {
         T GetService<T>() where T : class;
         void RegisterService<T>(T instance) where T : class;
-        static IServiceLocator GetInstance { get; } = ServiceLocator.GetInstance;
-        void RegisterExternalServices(HttpRequest req, ILogger log, ExecutionContext context);
+        static IServiceLocator Instance { get; } = ServiceLocator.Instance;
+        void RegisterServices(HttpRequest req, ILogger log, ExecutionContext context);
     }
 
     public sealed class ServiceLocator : IServiceLocator
@@ -23,7 +27,7 @@ namespace UrlShortener.Infrastructure
             Container = new Dictionary<object, object>();
         }
 
-        public static IServiceLocator GetInstance { get; } = new ServiceLocator();
+        public static IServiceLocator Instance { get; } = new ServiceLocator();
 
         public T GetService<T>()
             where T : class
@@ -41,21 +45,25 @@ namespace UrlShortener.Infrastructure
         public void RegisterService<T>(T instance)
             where T : class
         {
-            Container.Add(typeof(T), instance);
+            try
+            {
+                Container.Add(typeof(T), instance);
+            }
+            catch (Exception e)
+            {
+                throw new Exception("Service is already registered.", e);
+            }
         }
 
-        public void RegisterExternalServices(HttpRequest req, ILogger log, ExecutionContext context)
+        public void RegisterServices(HttpRequest req, ILogger log, ExecutionContext context)
         {
+            Container.Clear();
             RegisterService(req);
             RegisterService(log);
             RegisterService(context);
-            RegisterInternalServices();
-        }
-
-        private void RegisterInternalServices()
-        {
             RegisterService(new Config());
             RegisterService(new StorageTableHelper());
+            RegisterService(new UrlRepository());
         }
     }
 }

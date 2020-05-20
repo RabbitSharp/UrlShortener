@@ -1,12 +1,18 @@
+using System;
 using System.IO;
+using System.Net;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Extensions;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using UrlShortener.Application.Models;
+using UrlShortener.Domain;
+using UrlShortener.Domain.Exceptions;
 using UrlShortener.Infrastructure;
 
 namespace UrlShortener.Application.Functions
@@ -28,29 +34,32 @@ namespace UrlShortener.Application.Functions
                 return new NotFoundResult();
             }
 
-            var url = dto.SourceUrl.Trim();
-            var tail = dto.Tail.Trim();
-            var desc = dto.Description.Trim();
+            try
+            {
+                var loc = IServiceLocator.Instance;
+                loc.RegisterServices(req, log, context);
 
+                var urlService = new UrlService();
+                var urlResult = await urlService.Add(dto.SourceUrl, dto.Tail, dto.Description);
 
-            var loc = IServiceLocator.GetInstance;
-            loc.RegisterExternalServices(req, log, context);
+                var uri = new Uri(req.GetEncodedUrl());
+                var host = $"{uri.Scheme}://{uri.Host}";
 
-            var result = new AddUrlResponse();
+                var result = new AddUrlResponse(host, urlResult.SourceUrl, urlResult.RowKey, urlResult.Description);
 
-
-
-            // Continue here
-            // https://github.com/FBoucher/AzUrlShortener/blob/master/src/shortenerTools/Domain/StorageTableHelper.cs
-
-
-            //dynamic data = JsonConvert.DeserializeObject(requestBody);
-            //name ??= data?.name;
-
-            //return name != null
-            //    ? (ActionResult)new OkObjectResult($"Hello, {name}")
-            //    : new BadRequestObjectResult("Please pass a name on the query string or in the request body");
-            return new OkObjectResult($"Hello, dddddd");
+                log.LogInformation("Short Url created.");
+                return new OkObjectResult(result);
+            }
+            catch (ConflictException de)
+            {
+                log.LogError(de, "An domain error encountered.");
+                return de.HttpResult;
+            }
+            catch (Exception e)
+            {
+                log.LogError(e, "An unexpected error was encountered.");
+                return new BadRequestObjectResult(e.Message);
+            }
         }
     }
 }

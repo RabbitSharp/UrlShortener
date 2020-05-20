@@ -6,11 +6,9 @@ namespace UrlShortener.Domain.Models
 {
     public class Url : TableEntity
     {
-        private readonly IServiceLocator _locator;
 
         public Url()
         {
-            
         }
 
         public Url(string longUrl, string endUrl) 
@@ -19,8 +17,6 @@ namespace UrlShortener.Domain.Models
 
         public Url(string longUrl, string endUrl, string desc)
         {
-            _locator = IServiceLocator.GetInstance;
-
             PartitionKey = endUrl.First().ToString();
             RowKey = endUrl;
             SourceUrl = longUrl;
