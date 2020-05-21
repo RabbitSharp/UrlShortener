@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+using UrlShortener.Application.Exceptions;
 using UrlShortener.Domain.Exceptions;
 using UrlShortener.Domain.Models;
 using UrlShortener.Domain.Repositories;
@@ -11,12 +13,29 @@ namespace UrlShortener.Domain
     public class UrlService
     {
         private readonly UrlRepository _urlRepository;
+        private readonly ILogger _logger;
         private const string Alphabet = "abcdefghijklmnopqrstuvwxyz0123456789";
 
         public UrlService()
         {
             var loc = IServiceLocator.Instance;
             _urlRepository = loc.GetService<UrlRepository>();
+            _logger = loc.GetService<ILogger>();
+        }
+
+        public async Task<Url> Get(string shortUrl)
+        {
+            var storedUrl = await _urlRepository.GetEntity(new Url(shortUrl));
+            if (storedUrl == null)
+            {
+                throw new EntityNotFoundException($"Url for '{shortUrl}' not found.");
+            }
+
+            _logger.LogInformation($"Found: {storedUrl.LongUrl}");
+            storedUrl.ClickCount++;
+            // save click stats / stgHelper.SaveClickStatsEntity(new ClickStatsEntity(newUrl.RowKey));
+            await _urlRepository.Save(storedUrl);
+            return storedUrl;
         }
 
         public async Task<Url> Add(string sourceUrl, string tail, string desc)
@@ -34,10 +53,30 @@ namespace UrlShortener.Domain
             return await _urlRepository.Save(newUrl);
         }
 
+        public async Task<Url> Update(string sourceUrl, string tail, string desc)
+        {
+            if (string.IsNullOrWhiteSpace(tail))
+            {
+                throw new ValidationException("Tail has to be set.");
+            }
+            
+            var updateEntity = new Url(sourceUrl.Trim(), tail.Trim(), desc.Trim());
+            var originalEntity = await _urlRepository.GetEntity(updateEntity);
+            if (originalEntity == null)
+            {
+                throw new NotFoundException($"URL with '{updateEntity.RowKey}' tail could not be found.");
+            }
+
+            originalEntity.LongUrl = updateEntity.LongUrl;
+            originalEntity.Description = updateEntity.Description;
+            
+            return await _urlRepository.Save(originalEntity);
+        }
+
         private async Task<string> CreateTail()
         {
             var newKey = await _urlRepository.GetNextTableId();
-            return string.Join(string.Empty, Encode(newKey)); //sinnvoll?
+            return Encode(newKey);
         }
 
         private string Encode(int i)

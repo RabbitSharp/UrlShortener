@@ -1,6 +1,6 @@
 ﻿namespace UrlShortener.Application.Models
 {
-    public class AddUrlRequest
+    public class UrlRequest
     {
         public string SourceUrl { get; set; }
         public string Tail { get; set; }

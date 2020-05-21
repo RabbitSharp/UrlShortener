@@ -1,9 +1,9 @@
 using System;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Azure.WebJobs;
 using Microsoft.Azure.WebJobs.Extensions.Http;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using UrlShortener.Application.Models;
 using UrlShortener.Domain;
@@ -13,15 +13,15 @@ using ApplicationException = UrlShortener.Application.Exceptions.ApplicationExce
 
 namespace UrlShortener.Application.Functions
 {
-    public static class AddUrl
+    public static class UpdateUrl
     {
-        [FunctionName("AddUrl")]
+        [FunctionName("UpdateUrl")]
         public static async Task<IActionResult> Run(
-            [HttpTrigger(AuthorizationLevel.Function, "post", Route = null)] HttpRequest req, 
+            [HttpTrigger(AuthorizationLevel.Function, "post", Route = null)] HttpRequest req,
             ILogger log,
             ExecutionContext context)
         {
-            log.LogInformation($"C# HTTP trigger function processed a request. {req.Method}");
+            log.LogInformation("C# HTTP trigger function processed a request for UpdateUrl.");
 
             try
             {
@@ -31,11 +31,11 @@ namespace UrlShortener.Application.Functions
                 var dto = await Parser.Parse<UrlRequest>(req);
 
                 var urlService = new UrlService();
-                var urlResult = await urlService.Add(dto.SourceUrl, dto.Tail, dto.Description);
+                var urlResult = await urlService.Update(dto.SourceUrl, dto.Tail, dto.Description);
 
                 var result = new UrlResponse(req.GetHostPath(), urlResult.LongUrl, urlResult.RowKey, urlResult.Description);
 
-                log.LogInformation("Short Url created.");
+                log.LogInformation("Short Url updated.");
                 return new OkObjectResult(result);
             }
             catch (DomainException de)

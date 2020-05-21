@@ -74,7 +74,7 @@ namespace UrlShortener.Infrastructure
             }
             catch (StorageException e)
             {
-                Console.WriteLine(e.Message);
+                _logger.LogError(e, e.Message);
                 throw;
             }
         }

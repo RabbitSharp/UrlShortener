@@ -1,6 +1,5 @@
 ﻿using System.Linq;
 using Microsoft.WindowsAzure.Storage.Table;
-using UrlShortener.Infrastructure;
 
 namespace UrlShortener.Domain.Models
 {
@@ -11,28 +10,28 @@ namespace UrlShortener.Domain.Models
         {
         }
 
-        public Url(string longUrl, string endUrl) 
-            : this(longUrl, endUrl, string.Empty)
+        public Url(string shortUrl) 
+            : this(string.Empty, shortUrl, string.Empty)
         { }
 
-        public Url(string longUrl, string endUrl, string desc)
+        public Url(string longUrl, string shortUrl, string desc)
         {
-            PartitionKey = endUrl.First().ToString();
-            RowKey = endUrl;
-            SourceUrl = longUrl;
+            PartitionKey = shortUrl.First().ToString();
+            RowKey = shortUrl;
+            LongUrl = longUrl;
             Description = desc;
             ClickCount = 0;
         }
 
         //public string Id { get; set; }
-        public string SourceUrl { get; set; }
-        public string ShortUrl { get; set; } // => RowKey;
+        public string LongUrl { get; set; }
+        public string ShortUrl => RowKey;
         public string Description { get; set; }
         public int ClickCount { get; set; }
 
         public override string ToString()
         {
-            return $"SourceUrl: {SourceUrl} / ShortUrl: {ShortUrl} / Description: {Description} / ClickCount: {ClickCount}";
+            return $"LongUrl: {LongUrl} / ShortUrl: {ShortUrl} / Description: {Description} / ClickCount: {ClickCount}";
         }
     }
 }
