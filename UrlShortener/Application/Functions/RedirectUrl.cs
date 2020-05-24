@@ -8,68 +8,63 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using UrlShortener.Domain;
 using UrlShortener.Domain.Exceptions;
-using UrlShortener.Infrastructure;
 using ApplicationException = UrlShortener.Application.Exceptions.ApplicationException;
 
 namespace UrlShortener.Application.Functions
 {
-    public static class RedirectUrl
+    public class RedirectUrl
     {
-        [FunctionName("RedirectUrl")]
-        public static async Task<IActionResult> Run(
-            [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = "UrlRedirect/{shortUrl}")]
-            HttpRequest req,
-            string shortUrl,
-            ILogger log,
-            ExecutionContext context)
+        private readonly UrlService _urlService;
+        private readonly ILogger<RedirectUrl> _logger;
+
+        public RedirectUrl(UrlService urlService, ILogger<RedirectUrl> logger)
         {
-            log.LogInformation($"C# HTTP trigger function processed a request for Url '{shortUrl}'.");
+            _urlService = urlService ?? throw new ArgumentNullException(nameof(urlService));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        }
+
+        [FunctionName("RedirectUrl")]
+        public async Task<IActionResult> Run(
+            [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = "UrlRedirect/{shortUrl}")] HttpRequest req,
+            string shortUrl)
+        {
+            _logger.LogInformation($"C# HTTP trigger function processed a request for Url '{shortUrl}'.");
             var defaultRedirectUrl = $"{req.GetHostPath()}/";
 
             try
             {
-                var loc = IServiceLocator.Instance;
-                loc.RegisterServices(req, log, context);
-
                 if (string.IsNullOrWhiteSpace(shortUrl))
                 {
-                    log.LogInformation("Bad Link, using fallback.");
+                    _logger.LogInformation("Bad Link, using fallback.");
                     req.HttpContext.Response.Headers.Add("Location", defaultRedirectUrl);
                     return req.BuildRedirectResult(defaultRedirectUrl);
                 }
 
-                var urlService = new UrlService();
-                var entity = await urlService.Get(shortUrl);
+                var entity = await _urlService.Get(shortUrl);
 
                 var redirectUrl = WebUtility.UrlDecode(entity.LongUrl);
                 return req.BuildRedirectResult(redirectUrl);
             }
             catch (EntityNotFoundException)
             {
-                log.LogWarning("Entity not found. Redirect to default.");
+                _logger.LogWarning("Entity not found. Redirect to default.");
                 return req.BuildRedirectResult(defaultRedirectUrl);
             }
             catch (DomainException de)
             {
-                log.LogError(de, "An domain error encountered.");
+                _logger.LogError(de, "An domain error encountered.");
                 return de.HttpResult;
             }
             catch (ApplicationException ae)
             {
-                log.LogError(ae, "An validation error encountered.");
+                _logger.LogError(ae, "An validation error encountered.");
                 return ae.HttpResult;
             }
             catch (Exception e)
             {
-                log.LogError(e, "An unexpected error was encountered.");
+                _logger.LogError(e, "An unexpected error was encountered.");
                 return new BadRequestObjectResult(e.Message);
             }
-        }
-
-        private static IActionResult BuildRedirectResult(string url, HttpRequest req)
-        {
-            req.HttpContext.Response.Headers.Add("Location", url);
-            return new RedirectResult(url);
         }
     }
 }

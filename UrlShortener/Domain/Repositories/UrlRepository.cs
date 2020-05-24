@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using UrlShortener.Domain.Models;
 using UrlShortener.Infrastructure;
@@ -10,10 +11,9 @@ namespace UrlShortener.Domain.Repositories
         public const string TableName = "Urls";
         private readonly StorageTableHelper _storageTableHelper;
 
-        public UrlRepository()
+        public UrlRepository(StorageTableHelper storageTableHelper)
         {
-            var locator = IServiceLocator.Instance;
-            _storageTableHelper = locator.GetService<StorageTableHelper>();
+            _storageTableHelper = storageTableHelper ?? throw new ArgumentNullException(nameof(storageTableHelper));
         }
 
         public async Task<Url> GetEntity(Url entity)

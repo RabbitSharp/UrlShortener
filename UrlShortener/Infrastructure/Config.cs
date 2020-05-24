@@ -1,30 +1,20 @@
-﻿using Microsoft.Azure.WebJobs;
+﻿using System;
 using Microsoft.Extensions.Configuration;
 
 namespace UrlShortener.Infrastructure
 {
     public class Config
     {
-        private readonly ExecutionContext _executionContext;
-
-        public Config()
+        public Config(IConfiguration config)
         {
-            var locator = IServiceLocator.Instance;
-            _executionContext = locator.GetService<ExecutionContext>();
-            BuildConfig();
-        }
-
-        public string StorageConnectionString { get; set; }
-
-        public void BuildConfig()
-        {
-            var config = new ConfigurationBuilder()
-                .SetBasePath(_executionContext.FunctionAppDirectory)
-                .AddJsonFile("local.settings.json", optional: true, reloadOnChange: true)
-                .AddEnvironmentVariables()
-                .Build();
+            if (string.IsNullOrWhiteSpace(config["STORAGE_CONNECTION_STRING"]))
+            {
+                throw new ArgumentException("Configuration is invalid.", StorageConnectionString);
+            }
 
             StorageConnectionString = config["STORAGE_CONNECTION_STRING"];
         }
+
+        public string StorageConnectionString { get; set; }
     }
 }

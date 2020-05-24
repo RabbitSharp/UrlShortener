@@ -11,19 +11,19 @@ namespace UrlShortener.Infrastructure
     public class StorageTableHelper
     {
         private readonly Config _config;
-        private readonly ILogger _logger;
+        private readonly ILogger<StorageTableHelper> _logger;
 
-        public StorageTableHelper()
+        public StorageTableHelper(Config config, ILogger<StorageTableHelper> logger)
         {
-            var locator = IServiceLocator.Instance;
-            _config = locator.GetService<Config>();
-            _logger = locator.GetService<ILogger>();
+            _config = config ?? throw new ArgumentNullException(nameof(config));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         public CloudStorageAccount CreateStorageAccountFromConnectionString()
         {
             try
             {
+                _logger.LogWarning(_config.StorageConnectionString);
                 return CloudStorageAccount.Parse(_config.StorageConnectionString);
             }
             catch (Exception e)

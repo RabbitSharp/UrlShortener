@@ -8,49 +8,50 @@ using Microsoft.Extensions.Logging;
 using UrlShortener.Application.Models;
 using UrlShortener.Domain;
 using UrlShortener.Domain.Exceptions;
-using UrlShortener.Infrastructure;
 using ApplicationException = UrlShortener.Application.Exceptions.ApplicationException;
 
 namespace UrlShortener.Application.Functions
 {
-    public static class AddUrl
+    public class AddUrl
     {
-        [FunctionName("AddUrl")]
-        public static async Task<IActionResult> Run(
-            [HttpTrigger(AuthorizationLevel.Function, "post", Route = null)] HttpRequest req, 
-            ILogger log,
-            ExecutionContext context)
+        private readonly UrlService _urlService;
+        private readonly ILogger<AddUrl> _logger;
+
+        public AddUrl(UrlService urlService, ILogger<AddUrl> logger)
         {
-            log.LogInformation($"C# HTTP trigger function processed a request. {req.Method}");
+            _urlService = urlService ?? throw new ArgumentNullException(nameof(urlService));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        }
+
+        [FunctionName("AddUrl")]
+        public async Task<IActionResult> Run(
+            [HttpTrigger(AuthorizationLevel.Function, "post", Route = null)] HttpRequest req)
+        {
+            _logger.LogInformation($"C# HTTP trigger function processed a request. {req.Method}");
 
             try
             {
-                var loc = IServiceLocator.Instance;
-                loc.RegisterServices(req, log, context);
-
                 var dto = await Parser.Parse<UrlRequest>(req);
 
-                var urlService = new UrlService();
-                var urlResult = await urlService.Add(dto.SourceUrl, dto.Tail, dto.Description);
-
+                var urlResult = await _urlService.Add(dto.SourceUrl, dto.Tail, dto.Description);
                 var result = new UrlResponse(req.GetHostPath(), urlResult.LongUrl, urlResult.RowKey, urlResult.Description);
 
-                log.LogInformation("Short Url created.");
+                _logger.LogInformation("Short Url created.");
                 return new OkObjectResult(result);
             }
             catch (DomainException de)
             {
-                log.LogError(de, "An domain error encountered.");
+                _logger.LogError(de, "An domain error encountered.");
                 return de.HttpResult;
             }
             catch (ApplicationException ae)
             {
-                log.LogError(ae, "An validation error encountered.");
+                _logger.LogError(ae, "An validation error encountered.");
                 return ae.HttpResult;
             }
             catch (Exception e)
             {
-                log.LogError(e, "An unexpected error was encountered.");
+                _logger.LogError(e, "An unexpected error was encountered.");
                 return new BadRequestObjectResult(e.Message);
             }
         }

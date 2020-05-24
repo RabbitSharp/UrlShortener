@@ -6,21 +6,21 @@ using UrlShortener.Application.Exceptions;
 using UrlShortener.Domain.Exceptions;
 using UrlShortener.Domain.Models;
 using UrlShortener.Domain.Repositories;
-using UrlShortener.Infrastructure;
 
 namespace UrlShortener.Domain
 {
     public class UrlService
     {
         private readonly UrlRepository _urlRepository;
-        private readonly ILogger _logger;
+        private readonly ClickStatisticRepository _statRepository;
+        private readonly ILogger<UrlService> _logger;
         private const string Alphabet = "abcdefghijklmnopqrstuvwxyz0123456789";
 
-        public UrlService()
+        public UrlService(UrlRepository urlRepository, ClickStatisticRepository statRepository, ILogger<UrlService> logger)
         {
-            var loc = IServiceLocator.Instance;
-            _urlRepository = loc.GetService<UrlRepository>();
-            _logger = loc.GetService<ILogger>();
+            _urlRepository = urlRepository ?? throw new ArgumentNullException(nameof(urlRepository));
+            _statRepository = statRepository ?? throw new ArgumentNullException(nameof(statRepository));
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
         public async Task<Url> Get(string shortUrl)
@@ -33,7 +33,8 @@ namespace UrlShortener.Domain
 
             _logger.LogInformation($"Found: {storedUrl.LongUrl}");
             storedUrl.ClickCount++;
-            // save click stats / stgHelper.SaveClickStatsEntity(new ClickStatsEntity(newUrl.RowKey));
+            var statistic = new ClickStatistic(storedUrl.RowKey);
+            await _statRepository.Save(statistic);
             await _urlRepository.Save(storedUrl);
             return storedUrl;
         }
