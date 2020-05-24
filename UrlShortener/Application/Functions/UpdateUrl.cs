@@ -7,8 +7,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using UrlShortener.Application.Models;
 using UrlShortener.Domain;
-using UrlShortener.Domain.Exceptions;
-using ApplicationException = UrlShortener.Application.Exceptions.ApplicationException;
 
 namespace UrlShortener.Application.Functions
 {
@@ -29,36 +27,19 @@ namespace UrlShortener.Application.Functions
         {
             _logger.LogInformation("C# HTTP trigger function processed a request for UpdateUrl.");
 
-            try
-            {
-                //var loc = IServiceLocator.Instance;
-                //loc.RegisterServices(req, log, context);
+            return await GlobalErrorHandler.HandleExceptionAsync(async () => await UpdateUrlAction(req), _logger);
+        }
 
-                var dto = await Parser.Parse<UrlRequest>(req);
+        private async Task<IActionResult> UpdateUrlAction(HttpRequest req)
+        {
+            var dto = await Parser.Parse<UrlRequest>(req);
 
-                //var urlService = new UrlService();
-                var urlResult = await _urlService.Update(dto.SourceUrl, dto.Tail, dto.Description);
+            var urlResult = await _urlService.Update(dto.SourceUrl, dto.Tail, dto.Description);
 
-                var result = new UrlResponse(req.GetHostPath(), urlResult.LongUrl, urlResult.RowKey, urlResult.Description);
+            var result = new UrlResponse(req.GetHostPath(), urlResult.LongUrl, urlResult.RowKey, urlResult.Description);
 
-                _logger.LogInformation("Short Url updated.");
-                return new OkObjectResult(result);
-            }
-            catch (DomainException de)
-            {
-                _logger.LogError(de, "An domain error encountered.");
-                return de.HttpResult;
-            }
-            catch (ApplicationException ae)
-            {
-                _logger.LogError(ae, "An validation error encountered.");
-                return ae.HttpResult;
-            }
-            catch (Exception e)
-            {
-                _logger.LogError(e, "An unexpected error was encountered.");
-                return new BadRequestObjectResult(e.Message);
-            }
+            _logger.LogInformation("Short Url updated.");
+            return new OkObjectResult(result);
         }
     }
 }

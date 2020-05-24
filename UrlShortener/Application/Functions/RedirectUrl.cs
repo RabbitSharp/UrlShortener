@@ -8,7 +8,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using UrlShortener.Domain;
 using UrlShortener.Domain.Exceptions;
-using ApplicationException = UrlShortener.Application.Exceptions.ApplicationException;
 
 namespace UrlShortener.Application.Functions
 {
@@ -29,6 +28,12 @@ namespace UrlShortener.Application.Functions
             string shortUrl)
         {
             _logger.LogInformation($"C# HTTP trigger function processed a request for Url '{shortUrl}'.");
+
+            return await GlobalErrorHandler.HandleExceptionAsync(async () => await RedirectUrlAction(req, shortUrl), _logger);
+        }
+
+        private async Task<IActionResult> RedirectUrlAction(HttpRequest req, string shortUrl)
+        {
             var defaultRedirectUrl = $"{req.GetHostPath()}/";
 
             try
@@ -49,21 +54,6 @@ namespace UrlShortener.Application.Functions
             {
                 _logger.LogWarning("Entity not found. Redirect to default.");
                 return req.BuildRedirectResult(defaultRedirectUrl);
-            }
-            catch (DomainException de)
-            {
-                _logger.LogError(de, "An domain error encountered.");
-                return de.HttpResult;
-            }
-            catch (ApplicationException ae)
-            {
-                _logger.LogError(ae, "An validation error encountered.");
-                return ae.HttpResult;
-            }
-            catch (Exception e)
-            {
-                _logger.LogError(e, "An unexpected error was encountered.");
-                return new BadRequestObjectResult(e.Message);
             }
         }
     }
