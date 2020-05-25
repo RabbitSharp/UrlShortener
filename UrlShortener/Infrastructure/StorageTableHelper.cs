@@ -136,6 +136,5 @@ namespace UrlShortener.Infrastructure
 
             return entity.Id;
         }
-
     }
 }
