@@ -10,22 +10,22 @@ using UrlShortener.Domain;
 
 namespace UrlShortener.Application.Functions
 {
-    public class AddUrl
+    public class AddUrlFunc
     {
         private readonly UrlService _urlService;
-        private readonly ILogger<AddUrl> _logger;
+        private readonly ILogger<AddUrlFunc> _logger;
 
-        public AddUrl(UrlService urlService, ILogger<AddUrl> logger)
+        public AddUrlFunc(UrlService urlService, ILogger<AddUrlFunc> logger)
         {
             _urlService = urlService ?? throw new ArgumentNullException(nameof(urlService));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
-        [FunctionName("AddUrl")]
-        public async Task<IActionResult> Run(
+        [FunctionName(nameof(AddUrl))]
+        public async Task<IActionResult> AddUrl(
             [HttpTrigger(AuthorizationLevel.Function, "post", Route = null)] HttpRequest req)
         {
-            _logger.LogInformation($"C# HTTP trigger function processed a request. {req.Method}");
+            _logger.LogInformation($"HTTP trigger function processed a request for {nameof(AddUrl)}.");
 
             return await GlobalErrorHandler.HandleExceptionAsync(async () => await AddUrlAction(req), _logger);
         }

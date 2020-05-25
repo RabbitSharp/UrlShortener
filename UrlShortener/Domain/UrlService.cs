@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -37,6 +38,11 @@ namespace UrlShortener.Domain
             await _statRepository.Save(statistic);
             await _urlRepository.Save(storedUrl);
             return storedUrl;
+        }
+
+        public async Task<IEnumerable<Url>> GetAll()
+        {
+            throw new NotImplementedException();
         }
 
         public async Task<Url> Add(string sourceUrl, string tail, string desc)

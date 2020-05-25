@@ -11,23 +11,23 @@ using UrlShortener.Domain.Exceptions;
 
 namespace UrlShortener.Application.Functions
 {
-    public class RedirectUrl
+    public class RedirectUrlFunc
     {
         private readonly UrlService _urlService;
-        private readonly ILogger<RedirectUrl> _logger;
+        private readonly ILogger<RedirectUrlFunc> _logger;
 
-        public RedirectUrl(UrlService urlService, ILogger<RedirectUrl> logger)
+        public RedirectUrlFunc(UrlService urlService, ILogger<RedirectUrlFunc> logger)
         {
             _urlService = urlService ?? throw new ArgumentNullException(nameof(urlService));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
-        [FunctionName("RedirectUrl")]
-        public async Task<IActionResult> Run(
+        [FunctionName(nameof(RedirectUrl))]
+        public async Task<IActionResult> RedirectUrl(
             [HttpTrigger(AuthorizationLevel.Anonymous, "get", "post", Route = "UrlRedirect/{shortUrl}")] HttpRequest req,
             string shortUrl)
         {
-            _logger.LogInformation($"C# HTTP trigger function processed a request for Url '{shortUrl}'.");
+            _logger.LogInformation($"HTTP trigger function processed a request for {nameof(RedirectUrl)} with parameter '{shortUrl}'.");
 
             return await GlobalErrorHandler.HandleExceptionAsync(async () => await RedirectUrlAction(req, shortUrl), _logger);
         }
