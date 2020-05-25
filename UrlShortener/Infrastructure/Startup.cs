@@ -15,6 +15,7 @@ namespace UrlShortener.Infrastructure
             builder.Services.AddScoped<UrlRepository>();
             builder.Services.AddScoped<ClickStatisticRepository>();
             builder.Services.AddScoped<UrlService>();
+            builder.Services.AddScoped<StatisticService>();
             builder.Services.AddLogging();
         }
     }

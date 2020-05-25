@@ -13,14 +13,14 @@ namespace UrlShortener.Domain
     public class UrlService
     {
         private readonly UrlRepository _urlRepository;
-        private readonly ClickStatisticRepository _statRepository;
+        private readonly StatisticService _statService;
         private readonly ILogger<UrlService> _logger;
         private const string Alphabet = "abcdefghijklmnopqrstuvwxyz0123456789";
 
-        public UrlService(UrlRepository urlRepository, ClickStatisticRepository statRepository, ILogger<UrlService> logger)
+        public UrlService(UrlRepository urlRepository, StatisticService statService, ILogger<UrlService> logger)
         {
             _urlRepository = urlRepository ?? throw new ArgumentNullException(nameof(urlRepository));
-            _statRepository = statRepository ?? throw new ArgumentNullException(nameof(statRepository));
+            _statService = statService ?? throw new ArgumentNullException(nameof(statService));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
@@ -34,8 +34,7 @@ namespace UrlShortener.Domain
 
             _logger.LogInformation($"Found: {storedUrl.LongUrl}");
             storedUrl.ClickCount++;
-            var statistic = new ClickStatistic(storedUrl.RowKey);
-            await _statRepository.Save(statistic);
+            await _statService.Update(storedUrl);
             await _urlRepository.Save(storedUrl);
             return storedUrl;
         }
